@@ -4,3 +4,5 @@ payload:
   - DOMAIN-SUFFIX,spaceship.com
   - DOMAIN-SUFFIX,test.777865.xyz
   - DOMAIN-SUFFIX,istand.cc
+  - DST-PORT,22
+  - DST-PORT,60000
