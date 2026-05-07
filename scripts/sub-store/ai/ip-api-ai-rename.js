@@ -9,8 +9,11 @@
 async function operator(proxies = [], targetPlatform, context) {
   const $ = $substore;
   const {
-    timeout = 30000, // OpenAI 兼容接口请求超时, 单位毫秒
+    timeout = 60000, // OpenAI 兼容接口请求超时, 单位毫秒
     ipApiTimeout = 8000, // ip-api 请求超时, 单位毫秒
+    ipBatchSize = 5, // ip-api 每批并发数量
+    ipBatchInterval = 1500, // ip-api 每批之间的等待时间, 单位毫秒
+    ipRetry = 1, // ip-api 查询失败后的重试次数, 主要用于 429 限速
     url = '', // 完整 OpenAI 兼容的 API URL
     model = '', // 模型名称
     key = '', // API Key
@@ -47,6 +50,10 @@ async function operator(proxies = [], targetPlatform, context) {
     return `${prefix}:${ProxyUtils.hex_md5 ? ProxyUtils.hex_md5(str) : str}`;
   }
 
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   async function queryIpApi(host) {
     if (!host || !isIpLikeOrDomain(host)) {
       return { isp: unknownIsp };
@@ -64,58 +71,86 @@ async function operator(proxies = [], targetPlatform, context) {
       }
     }
 
-    try {
-      const api = `http://ip-api.com/json/${encodeURIComponent(host)}?fields=${encodeURIComponent(ipApiFields)}`;
-      const { statusCode, body } = await $.http.get({ timeout: ipApiTimeout, url: api });
-      if (statusCode !== 200) {
-        $.error(`ip-api 查询失败: ${host} 状态码 ${statusCode}`);
+    const api = `http://ip-api.com/json/${encodeURIComponent(host)}?fields=${encodeURIComponent(ipApiFields)}`;
+    const maxAttempts = Math.max(1, Number(ipRetry) + 1);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const { statusCode, body } = await $.http.get({ timeout: ipApiTimeout, url: api });
+        if (statusCode === 429 && attempt < maxAttempts) {
+          $.error(`ip-api 触发限速: ${host} 状态码 429, 准备重试 ${attempt}/${maxAttempts - 1}`);
+          await sleep(Math.max(1000, Number(ipBatchInterval) || 1500));
+          continue;
+        }
+        if (statusCode !== 200) {
+          $.error(`ip-api 查询失败: ${host} 状态码 ${statusCode}`);
+          return { isp: unknownIsp };
+        }
+        const data = JSON.parse(body || '{}');
+        if (data.status && data.status !== 'success') {
+          $.error(`ip-api 查询失败: ${host} ${data.message || ''}`);
+          return { isp: unknownIsp };
+        }
+        const result = {
+          isp: data.isp || data.org || unknownIsp,
+          as: data.as || '',
+          countryCode: data.countryCode || '',
+          country: data.country || '',
+          region: data.region || '',
+          city: data.city || '',
+          query: data.query || host,
+        };
+        if (ipCache) {
+          scriptResourceCache.set(id, JSON.stringify(result));
+        }
+        return result;
+      } catch (e) {
+        if (attempt < maxAttempts) {
+          $.error(`ip-api 查询异常: ${host} ${e.message}, 准备重试 ${attempt}/${maxAttempts - 1}`);
+          await sleep(Math.max(1000, Number(ipBatchInterval) || 1500));
+          continue;
+        }
+        $.error(`ip-api 查询异常: ${host} ${e.message}`);
         return { isp: unknownIsp };
       }
-      const data = JSON.parse(body || '{}');
-      if (data.status && data.status !== 'success') {
-        $.error(`ip-api 查询失败: ${host} ${data.message || ''}`);
-        return { isp: unknownIsp };
-      }
-      const result = {
-        isp: data.isp || data.org || unknownIsp,
-        as: data.as || '',
-        countryCode: data.countryCode || '',
-        country: data.country || '',
-        region: data.region || '',
-        city: data.city || '',
-        query: data.query || host,
-      };
-      if (ipCache) {
-        scriptResourceCache.set(id, JSON.stringify(result));
-      }
-      return result;
-    } catch (e) {
-      $.error(`ip-api 查询异常: ${host} ${e.message}`);
-      return { isp: unknownIsp };
     }
+
+    return { isp: unknownIsp };
   }
 
-  const proxyNamesArray = await Promise.all(
-    proxies.map(async (p, i) => {
-      const host = getNodeHost(p);
-      const ipInfo = await queryIpApi(host);
-      const obj = {
-        id: `${i}`,
-        name: p.name,
-        isp: ipInfo.isp || unknownIsp,
-        as: ipInfo.as || '',
-        countryCode: ipInfo.countryCode || '',
-        city: ipInfo.city || '',
-        query: ipInfo.query || host,
-      };
-      extraFields.forEach((field) => {
-        if (p[field]) {
-          obj[field] = p[field];
-        }
-      });
-      return obj;
-    }),
-  );
+  async function buildProxyInfo(p, i) {
+    const host = getNodeHost(p);
+    const ipInfo = await queryIpApi(host);
+    const obj = {
+      id: `${i}`,
+      name: p.name,
+      isp: ipInfo.isp || unknownIsp,
+      as: ipInfo.as || '',
+      countryCode: ipInfo.countryCode || '',
+      city: ipInfo.city || '',
+      query: ipInfo.query || host,
+    };
+    extraFields.forEach((field) => {
+      if (p[field]) {
+        obj[field] = p[field];
+      }
+    });
+    return obj;
+  }
+
+  const proxyNamesArray = [];
+  const batchSize = Math.max(1, Number(ipBatchSize) || 5);
+  const batchInterval = Math.max(0, Number(ipBatchInterval) || 0);
+  for (let start = 0; start < proxies.length; start += batchSize) {
+    const batch = proxies.slice(start, start + batchSize);
+    const infos = await Promise.all(
+      batch.map((p, offset) => buildProxyInfo(p, start + offset)),
+    );
+    proxyNamesArray.push(...infos);
+    if (start + batchSize < proxies.length && batchInterval > 0) {
+      await sleep(batchInterval);
+    }
+  }
 
   const proxyNamesStr = JSON.stringify(proxyNamesArray);
   const content = `
