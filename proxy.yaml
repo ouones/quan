@@ -1,3 +1,4 @@
 # 其他分流 代理
 payload:
-  - DOMAIN-SUFFIX,istand.cc
+  - DOMAIN-SUFFIX,cli.istand.cc
+  - DOMAIN-SUFFIX,nezha.istand.cc
