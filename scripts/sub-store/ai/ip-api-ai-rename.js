@@ -1,5 +1,10 @@
 /**
- * AI 节点重命名脚本 + ip-api ISP 增强版
+ * AI 节点重命名脚本 + ip-api ISP 增强版（批量端点优化）
+ *
+ * 相比逐个查询版本：
+ * - 使用 ip-api /batch 端点，单次 POST 最多 100 个 IP
+ * - 50 个节点只需 1 次请求，不触发 45/min 限速
+ * - 批量端点限速为 15 次/分钟
  *
  * 用法：
  * - url/model/key/nameExample 沿用原 AI 脚本参数
@@ -9,18 +14,17 @@
 async function operator(proxies = [], targetPlatform, context) {
   const $ = $substore;
   const {
-    timeout = 60000, // OpenAI 兼容接口请求超时, 单位毫秒
-    ipApiTimeout = 8000, // ip-api 请求超时, 单位毫秒
-    ipBatchSize = 5, // ip-api 每批并发数量
-    ipBatchInterval = 1500, // ip-api 每批之间的等待时间, 单位毫秒
-    ipRetry = 1, // ip-api 查询失败后的重试次数, 主要用于 429 限速
-    url = '', // 完整 OpenAI 兼容的 API URL
-    model = '', // 模型名称
-    key = '', // API Key
-    nameExample = '', // 命名提示词
-    fields = '', // 附加字段, 多个字段用逗号分隔
-    cache = false, // 是否启用整体 AI 结果缓存
-    ipCache = true, // 是否缓存 ip-api 查询结果
+    timeout = 60000,          // OpenAI 兼容接口请求超时, 单位毫秒
+    ipApiTimeout = 15000,     // ip-api 请求超时, 单位毫秒（批量请求放宽到 15s）
+    ipBatchInterval = 4500,   // 批量重试之间的等待时间, 单位毫秒
+    ipRetry = 2,              // ip-api 查询失败后的重试次数
+    url = '',                 // 完整 OpenAI 兼容的 API URL
+    model = '',               // 模型名称
+    key = '',                 // API Key
+    nameExample = '',         // 命名提示词
+    fields = '',              // 附加字段, 多个字段用逗号分隔
+    cache = false,            // 是否启用整体 AI 结果缓存
+    ipCache = true,           // 是否缓存 ip-api 查询结果
     ipApiFields = 'status,message,country,countryCode,region,city,isp,org,as,query',
     unknownIsp = 'UnknownISP',
   } = $arguments || {};
@@ -54,105 +58,176 @@ async function operator(proxies = [], targetPlatform, context) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async function queryIpApi(host) {
-    if (!host || !isIpLikeOrDomain(host)) {
-      return { isp: unknownIsp };
+  /**
+   * 用 /batch 端点批量查询所有节点的 IP/域名信息
+   * 单次 POST 最多 100 个 host，只占 1 次限额
+   */
+  function queryIpApiBatch(hosts) {
+    // 去重，避免同一 host 重复查
+    const unique = [...new Set(hosts)];
+    const results = new Map(); // host -> ipInfo
+    const batchSize = 100; // /batch 端点硬性上限
+
+    const batches = [];
+    for (let i = 0; i < unique.length; i += batchSize) {
+      batches.push(unique.slice(i, i + batchSize));
     }
 
-    const id = cacheKey('ip-api', { host, ipApiFields });
-    if (ipCache) {
-      const cached = scriptResourceCache.get(id);
-      if (cached) {
-        try {
-          return JSON.parse(cached);
-        } catch (e) {
-          $.error(`ip-api 缓存解析失败: ${host} ${e.message}`);
-        }
-      }
-    }
-
-    const api = `http://ip-api.com/json/${encodeURIComponent(host)}?fields=${encodeURIComponent(ipApiFields)}`;
     const maxAttempts = Math.max(1, Number(ipRetry) + 1);
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const { statusCode, body } = await $.http.get({ timeout: ipApiTimeout, url: api });
-        if (statusCode === 429 && attempt < maxAttempts) {
-          $.error(`ip-api 触发限速: ${host} 状态码 429, 准备重试 ${attempt}/${maxAttempts - 1}`);
-          await sleep(Math.max(1000, Number(ipBatchInterval) || 1500));
-          continue;
+    return Promise.all(
+      batches.map(async (batch, idx) => {
+        $.info(`ip-api 批量查询第 ${idx + 1}/${batches.length} 批，共 ${batch.length} 个 host`);
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            const { statusCode, body: resp } = await $.http.post({
+              timeout: Number(ipApiTimeout) || 15000,
+              url: 'http://ip-api.com/batch',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(
+                batch.map((h) => ({ query: h, fields: ipApiFields }))
+              ),
+            });
+
+            if (statusCode === 429) {
+              if (attempt < maxAttempts) {
+                $.error(`ip-api 批量触发限速 429，等待 ${ipBatchInterval}ms 后重试 ${attempt}/${maxAttempts - 1}`);
+                await sleep(Number(ipBatchInterval) || 4500);
+                continue;
+              }
+              $.error('ip-api 批量请求触发限速，本批跳过');
+              break;
+            }
+
+            if (statusCode !== 200) {
+              $.error(`ip-api 批量查询失败: 状态码 ${statusCode}`);
+              if (attempt < maxAttempts) {
+                await sleep(Number(ipBatchInterval) || 4500);
+                continue;
+              }
+              break;
+            }
+
+            const items = JSON.parse(resp || '[]');
+            for (const item of items) {
+              const host = item.query || '';
+              const info = item.status === 'success'
+                ? {
+                    isp: item.isp || item.org || unknownIsp,
+                    as: item.as || '',
+                    countryCode: item.countryCode || '',
+                    country: item.country || '',
+                    region: item.region || '',
+                    city: item.city || '',
+                    query: host,
+                  }
+                : { isp: unknownIsp, as: '', countryCode: '', country: '', region: '', city: '', query: host };
+              results.set(host, info);
+            }
+            break; // 成功，跳出重试
+          } catch (e) {
+            if (attempt < maxAttempts) {
+              $.error(`ip-api 批量查询异常: ${e.message}, 重试 ${attempt}/${maxAttempts - 1}`);
+              await sleep(Number(ipBatchInterval) || 4500);
+              continue;
+            }
+            $.error(`ip-api 批量查询异常: ${e.message}`);
+          }
         }
-        if (statusCode !== 200) {
-          $.error(`ip-api 查询失败: ${host} 状态码 ${statusCode}`);
-          return { isp: unknownIsp };
+      })
+    ).then(() => results);
+  }
+
+  /**
+   * 主入口：收集所有节点 host → 批量查 ip-api → 组装 proxyNamesArray
+   */
+  async function getProxyNamesArray() {
+    // 1. 收集所有需要查询的 host
+    const hostOfProxy = proxies.map((p) => getNodeHost(p));
+    const hostsNeedingQuery = [];
+
+    if (ipCache) {
+      // 先查缓存，未命中的才加入查询队列
+      for (const host of hostOfProxy) {
+        if (!host || !isIpLikeOrDomain(host)) continue;
+        const ck = cacheKey('ip-api-batch', { host, ipApiFields });
+        const cached = scriptResourceCache.get(ck);
+        if (cached) {
+          try {
+            JSON.parse(cached);
+            continue; // 缓存有效，跳过
+          } catch (_) {}
         }
-        const data = JSON.parse(body || '{}');
-        if (data.status && data.status !== 'success') {
-          $.error(`ip-api 查询失败: ${host} ${data.message || ''}`);
-          return { isp: unknownIsp };
+        hostsNeedingQuery.push(host);
+      }
+    } else {
+      // 不缓存模式，去重后全部查
+      const seen = new Set();
+      for (const host of hostOfProxy) {
+        if (!host || !isIpLikeOrDomain(host)) continue;
+        if (!seen.has(host)) {
+          seen.add(host);
+          hostsNeedingQuery.push(host);
         }
-        const result = {
-          isp: data.isp || data.org || unknownIsp,
-          as: data.as || '',
-          countryCode: data.countryCode || '',
-          country: data.country || '',
-          region: data.region || '',
-          city: data.city || '',
-          query: data.query || host,
-        };
-        if (ipCache) {
-          scriptResourceCache.set(id, JSON.stringify(result));
-        }
-        return result;
-      } catch (e) {
-        if (attempt < maxAttempts) {
-          $.error(`ip-api 查询异常: ${host} ${e.message}, 准备重试 ${attempt}/${maxAttempts - 1}`);
-          await sleep(Math.max(1000, Number(ipBatchInterval) || 1500));
-          continue;
-        }
-        $.error(`ip-api 查询异常: ${host} ${e.message}`);
-        return { isp: unknownIsp };
       }
     }
 
-    return { isp: unknownIsp };
-  }
-
-  async function buildProxyInfo(p, i) {
-    const host = getNodeHost(p);
-    const ipInfo = await queryIpApi(host);
-    const obj = {
-      id: `${i}`,
-      name: p.name,
-      isp: ipInfo.isp || unknownIsp,
-      as: ipInfo.as || '',
-      countryCode: ipInfo.countryCode || '',
-      city: ipInfo.city || '',
-      query: ipInfo.query || host,
-    };
-    extraFields.forEach((field) => {
-      if (p[field]) {
-        obj[field] = p[field];
+    // 2. 批量查询
+    let results;
+    if (hostsNeedingQuery.length > 0) {
+      $.info(`开始批量查询 ip-api: ${hostsNeedingQuery.length} 个 host`);
+      results = await queryIpApiBatch(hostsNeedingQuery);
+      // 写缓存
+      if (ipCache) {
+        for (const [host, info] of results) {
+          scriptResourceCache.set(cacheKey('ip-api-batch', { host, ipApiFields }), JSON.stringify(info));
+        }
       }
+    } else {
+      results = new Map();
+    }
+
+    // 3. 组装结果（含缓存合并）
+    return proxies.map((p, i) => {
+      const host = getNodeHost(p);
+      let ipInfo;
+
+      if (host && isIpLikeOrDomain(host)) {
+        ipInfo = results.get(host);
+        // /batch 未查到（可能该 host 未命中查询），尝试从旧缓存读
+        if (!ipInfo && ipCache) {
+          const ck = cacheKey('ip-api-batch', { host, ipApiFields });
+          const cached = scriptResourceCache.get(ck);
+          if (cached) {
+            try { ipInfo = JSON.parse(cached); } catch (_) {}
+          }
+        }
+      }
+
+      if (!ipInfo) {
+        ipInfo = { isp: unknownIsp, as: '', countryCode: '', city: '', query: host || '' };
+      }
+
+      const obj = {
+        id: `${i}`,
+        name: p.name,
+        isp: ipInfo.isp || unknownIsp,
+        as: ipInfo.as || '',
+        countryCode: ipInfo.countryCode || '',
+        city: ipInfo.city || '',
+        query: ipInfo.query || host,
+      };
+      extraFields.forEach((field) => {
+        if (p[field]) obj[field] = p[field];
+      });
+      return obj;
     });
-    return obj;
   }
 
-  const proxyNamesArray = [];
-  const batchSize = Math.max(1, Number(ipBatchSize) || 5);
-  const batchInterval = Math.max(0, Number(ipBatchInterval) || 0);
-  for (let start = 0; start < proxies.length; start += batchSize) {
-    const batch = proxies.slice(start, start + batchSize);
-    const infos = await Promise.all(
-      batch.map((p, offset) => buildProxyInfo(p, start + offset)),
-    );
-    proxyNamesArray.push(...infos);
-    if (start + batchSize < proxies.length && batchInterval > 0) {
-      await sleep(batchInterval);
-    }
-  }
-
+  const proxyNamesArray = await getProxyNamesArray();
   const proxyNamesStr = JSON.stringify(proxyNamesArray);
+
   const content = `
 你将收到一个 JSON 数组字符串。
 每个对象可能包含 id、name、isp、as、countryCode、city、query 等字段。
