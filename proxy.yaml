@@ -2,3 +2,5 @@
 payload:
   - DOMAIN-SUFFIX,cli.istand.cc
   - DOMAIN-SUFFIX,nezha.istand.cc
+  - DOMAIN-SUFFIX,ipv6.ping0.cc
+  - DOMAIN-SUFFIX,ipv6.icanhazip.com
