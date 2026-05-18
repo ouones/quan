@@ -1,0 +1,45 @@
+domain_set:
+- bybit-exchange.github.io
+- app-measurement.com
+domain_suffix_set:
+- byabcd.com
+- bynbc.com
+- ffbbbdc6d3c353211fe2ba39c9f744cd.com
+- ffe390afd658c19dcbf707e0597b846d.de
+- amazon.com
+- amazonaws.com
+- bybit.biz
+- bybit.com
+- bycsi.com
+- bytick.com
+- byapis.com
+- bycbe.com
+- bymj.io
+- byabcde.com
+- byapps.net
+- byd3c3.com
+- bybdc6.com
+- appsflyer.com
+- appsflayer.com
+- binance.cloud
+- binance.com
+- binance.me
+- binancecnt.com
+- binancefuture.com
+- bnappzh.co
+- bnbstatic.com
+- bnbzh.ac
+- bntrace.com
+- saasexch.cc
+- saasexch.com
+domain_keyword_set:
+- bybit
+- binance
+ip_cidr_set:
+- 13.32.121.6/32
+- 43.133.238.145/32
+- 13.33.187.108/32
+- 150.109.230.182/32
+- 142.251.215.234/32
+- 43.133.241.84/32
+- 3.160.150.37/32

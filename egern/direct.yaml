@@ -1,0 +1,9 @@
+domain_suffix_set:
+- spaceship.com
+- test.777865.xyz
+- istand.cc
+ip_cidr_set:
+- 100.66.1.0/24
+dest_port_set:
+- '22'
+- '60000'
