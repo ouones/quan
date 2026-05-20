@@ -1,0 +1,12 @@
+# 用于自用emby代理分流
+payload:
+  - DOMAIN-SUFFIX,embymv.link
+  - DOMAIN-SUFFIX,emos.best
+  - DOMAIN-SUFFIX,emby-npo.hohai.eu.org
+  - DOMAIN-SUFFIX,emby.bangumi.ca
+  - DOMAIN-SUFFIX,emby.rochub.xyz
+  - DOMAIN-SUFFIX,lite.cn2gias.uk
+  - DOMAIN-SUFFIX,link00.okemby.org
+  - DOMAIN-SUFFIX,emby.ichinosekotomi.com
+  - DOMAIN-SUFFIX,a.mooguu.top
+  - DOMAIN-SUFFIX,cf.sfcj.org

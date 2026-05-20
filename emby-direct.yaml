@@ -14,4 +14,5 @@ payload:
   # hello
   - DOMAIN-SUFFIX,genshen.mihoyo.bbroot.com
   - DOMAIN-SUFFIX,114514.fuckme.pushgoodcloud.com
+  - DOMAIN-SUFFIX,gy.fxtbjmqslr.cn
 
