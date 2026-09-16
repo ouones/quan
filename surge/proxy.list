@@ -1,5 +1,6 @@
 # Converted from egern/proxy.yaml
 # Surge RULE-SET plain-text format
+DOMAIN-SUFFIX,gateway.istand.cc
 DOMAIN-SUFFIX,cli.istand.cc
 DOMAIN-SUFFIX,ipv6.ping0.cc
 DOMAIN-SUFFIX,ipv6.icanhazip.com
