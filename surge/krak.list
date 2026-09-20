@@ -1,6 +1,7 @@
 # Converted from egern/krak.yaml
 # Surge RULE-SET plain-text format
 # Krak / Kraken
+DOMAIN-KEYWORD,krak
 DOMAIN-SUFFIX,krak.app
 DOMAIN-SUFFIX,kraken.com
 DOMAIN-SUFFIX,api.kraken.com

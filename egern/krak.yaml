@@ -1,4 +1,7 @@
 # Krak / Kraken
+domain_keyword_set:
+- krak
+
 domain_suffix_set:
 - krak.app
 - kraken.com
