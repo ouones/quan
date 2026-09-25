@@ -1,3 +1,7 @@
+domain_set:
+- emby.my
+- a.emby.my
+
 domain_suffix_set:
 - embymv.link
 - emos.best
