@@ -1,6 +1,8 @@
 domain_set:
 - emby.my
 - a.emby.my
+# 月饼推流地址
+- speedtest-babybus.apple-cdn.net
 
 domain_suffix_set:
 - embymv.link

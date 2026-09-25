@@ -17,3 +17,5 @@ payload:
   - DOMAIN-SUFFIX,emby.kingemby.com
   - DOMAIN,emby.my
   - DOMAIN,a.emby.my
+  # 月饼推流地址
+  - DOMAIN,speedtest-babybus.apple-cdn.net
