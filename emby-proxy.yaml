@@ -17,3 +17,5 @@ payload:
   - DOMAIN,a.emby.my
   # 月饼推流地址
   - DOMAIN,speedtest-babybus.apple-cdn.net
+  # 月饼临时域名
+  - DOMAIN-SUFFIX,876645.xyz
