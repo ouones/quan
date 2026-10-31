@@ -1,0 +1,10 @@
+# Loon 订阅规则；策略由订阅时指定
+# 用于自用emby绕日分流
+DOMAIN-SUFFIX,emby.younoyes.com
+DOMAIN-SUFFIX,test.28.al
+DOMAIN-SUFFIX,digimon.ink
+DOMAIN-SUFFIX,yvle.de
+DOMAIN-SUFFIX,freestream.startspoint.com
+DOMAIN-SUFFIX,us.aemby.de
+DOMAIN-SUFFIX,cf.sfcj.org
+DOMAIN-SUFFIX,media.emby.pro

@@ -1,0 +1,7 @@
+# Loon 订阅规则；策略由订阅时指定
+# 其他分流 代理
+DOMAIN-SUFFIX,gateway.istand.cc
+DOMAIN-SUFFIX,cli.istand.cc
+DOMAIN-SUFFIX,ipv6.ping0.cc
+DOMAIN-SUFFIX,ipv6.icanhazip.com
+DOMAIN-SUFFIX,danmu.777865.xyz

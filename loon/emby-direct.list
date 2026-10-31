@@ -1,0 +1,16 @@
+# Loon 订阅规则；策略由订阅时指定
+# 用于自用安必分流 direct
+DOMAIN-SUFFIX,emby.777865.xyz
+DOMAIN-SUFFIX,fandai.777865.xyz
+# emos
+DOMAIN-SUFFIX,emos.wangjunqiang.indevs.in
+DOMAIN-SUFFIX,emos.ujmb.dpdns.org
+DOMAIN-SUFFIX,emos.dolby.dpdns.org
+DOMAIN-SUFFIX,emos.liuer.indevs.in
+DOMAIN-SUFFIX,emos.cyclince.de
+# rocc
+DOMAIN-SUFFIX,emby.cf.rochub.xyz
+# hello
+DOMAIN-SUFFIX,genshen.mihoyo.bbroot.com
+DOMAIN-SUFFIX,114514.fuckme.pushgoodcloud.com
+DOMAIN-SUFFIX,gy.fxtbjmqslr.cn
