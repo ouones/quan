@@ -1,6 +1,6 @@
 # Loon 订阅规则；策略由订阅时指定
 # 其他分流 直连
-IP-CIDR,100.66.1.0/24
+IP-CIDR,100.66.1.0/24,no-resolve
 DOMAIN-SUFFIX,spaceship.com
 DOMAIN-SUFFIX,test.777865.xyz
 DOMAIN-SUFFIX,nezha.istand.cc
