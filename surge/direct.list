@@ -11,8 +11,8 @@ DOMAIN-SUFFIX,tyemby.klplay.top
 DOMAIN-SUFFIX,egernlincense.com
 DOMAIN-SUFFIX,right.com.cn
 IP-CIDR,100.66.1.0/24,no-resolve
-DOMAIN-SUFFIX,termius.com,DIRECT
-DOMAIN-SUFFIX,777865.xyz,DIRECT
-DOMAIN,greencloudvps.com,DIRECT
-DOMAIN-SUFFIX,netcup.com,DIRECT
-DOMAIN-KEYWORD,vmiss,DIRECT
+DOMAIN-SUFFIX,termius.com
+DOMAIN-SUFFIX,777865.xyz
+DOMAIN,greencloudvps.com
+DOMAIN-SUFFIX,netcup.com
+DOMAIN-KEYWORD,vmiss
