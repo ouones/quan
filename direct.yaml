@@ -16,5 +16,3 @@ payload:
   - DOMAIN,greencloudvps.com
   - DOMAIN-SUFFIX,netcup.com
   - DOMAIN-KEYWORD,vmiss
-  - DST-PORT,22
-  - DST-PORT,60000
