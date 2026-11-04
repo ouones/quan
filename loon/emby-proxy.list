@@ -1,6 +1,7 @@
 # Loon 订阅规则；策略由订阅时指定
 # 用于自用emby代理分流
 DOMAIN-SUFFIX,embymv.link
+DOMAIN-SUFFIX,embymv.cc
 DOMAIN-SUFFIX,emos.best
 DOMAIN-SUFFIX,emby-npo.hohai.eu.org
 DOMAIN-SUFFIX,emby-pro.hohai.eu.org
