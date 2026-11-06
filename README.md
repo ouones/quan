@@ -48,6 +48,26 @@ dest_port_set:
 - `egern/krak.yaml`：对应 Krak/Kraken 代理分流规则。
 - `egern/copilot.yaml`：对应 Microsoft Copilot 代理分流规则。
 
+## 英国 Wi-Fi Calling
+
+`wificalling-uk.yaml`、`egern/wificalling-uk.yaml`、`loon/wificalling-uk.list` 和 `surge/wificalling-uk.list` 转换自 [LOWERTOP/Shadowrocket-First](https://github.com/LOWERTOP/Shadowrocket-First) 的 WiFiCallingUK 规则。使用时将规则集指向支持 UDP 转发的英国节点；Clash/Mihomo 使用 `classical` 格式，Loon 的逻辑规则需要 3.1.7 或更高版本。上游规则只适用于部分英国 SIM 卡。
+
+Egern 规则集暂不包含上游的「英国 IP 且 UDP 目标端口为 500 或 4500」组合条件：官方文档列出了 `and_set`，但没有给出可验证的规则集语法。需要此条件时，在 Egern 主配置的 `rules` 中另外添加以下规则，`policy` 改成自己的英国节点或策略组，并放在可能提前匹配的规则之前：
+
+```yaml
+- and:
+    match:
+    - geoip:
+        match: GB
+    - protocol:
+        match: udp
+    - dest_port:
+        match: "500,4500"
+    policy: UK
+```
+
+这条主配置规则与 Egern 规则集要指向同一英国策略。规则集中的 IP-CIDR 使用 `no_resolve: true`；上面的 GeoIP 条件按上游规则不加 `no_resolve`。
+
 ## 维护约定
 
 - 新增或更新根目录 Clash/Mihomo `.yaml` 规则时，必须同步更新 `egern/` 下的对应文件。
