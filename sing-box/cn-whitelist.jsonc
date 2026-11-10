@@ -1,0 +1,41 @@
+{
+  // Allow only verified foreign infrastructure records that geosite-cn would reject:
+  // connectivity checks, certificate status/validation, and OS update delivery.
+  // Keep before the geosite-cn + geoip-cn reject rule; do not broaden these matchers.
+  // Audited sources: geosite-cn.srs sha256 07ce0fef9aa39d9ed1f10b98e9f7f97afb3ac81ae9ae650acef2f72e67ef1484
+  //                 geoip-cn.srs   sha256 81ada5cafd9d831adc48776f29cdfe55c9713d9287caeef9de925ef30f66cce4
+  "inbound": ["<replace-with-protected-inbound-tag>"],
+  "domain": [
+    "www.gstatic.com",
+    "connectivitycheck.gstatic.com",
+    "fonts.gstatic.com",
+    "fonts.googleapis.com",
+    "c.pki.goog",
+    "crl.pki.goog",
+    "crls.pki.goog",
+    "i.pki.goog",
+    "o.pki.goog",
+    "ocsp.pki.goog",
+    "recaptcha.net",
+    "www.recaptcha.net",
+    "www.apple.com",
+    "mesu.apple.com",
+    "swcdn.apple.com",
+    "swscan.apple.com",
+    "ocsp.apple.com",
+    "ocsp2.apple.com",
+    "updates-http.cdn-apple.com",
+    "updates.cdn-apple.com",
+    "configuration.apple.com",
+    "valid.apple.com",
+    "ctldl.windowsupdate.com",
+    "download.microsoft.com",
+    "tlu.dl.delivery.mp.microsoft.com"
+  ],
+  "domain_suffix": [
+    "download.windowsupdate.com",
+    "dl.delivery.mp.microsoft.com"
+  ],
+  "action": "route",
+  "outbound": "<replace-with-deployment-direct-tag>"
+}
