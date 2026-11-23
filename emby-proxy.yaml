@@ -1,7 +1,6 @@
 # 用于自用emby代理分流
 payload:
   - DOMAIN-SUFFIX,embymv.link
-  - DOMAIN-SUFFIX,embymv.cc
   - DOMAIN-SUFFIX,emos.best
   - DOMAIN-SUFFIX,emby-npo.hohai.eu.org
   - DOMAIN-SUFFIX,hohai.eu.org

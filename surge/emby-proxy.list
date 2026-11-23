@@ -1,7 +1,6 @@
 # Converted from egern/emby-proxy.yaml
 # Surge RULE-SET plain-text format
 DOMAIN-SUFFIX,embymv.link
-DOMAIN-SUFFIX,embymv.cc
 DOMAIN-SUFFIX,emos.best
 DOMAIN-SUFFIX,emby-npo.hohai.eu.org
 DOMAIN-SUFFIX,hohai.eu.org
